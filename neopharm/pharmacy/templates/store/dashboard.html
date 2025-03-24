@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Welcome Section -->
+        <div class="col-12 mb-4">
+            <h2>Welcome, 
+                {% if request.user.username %}
+                    {{ request.user.username|upper }}
+                {% elif request.user.mobile %}
+                    {{ request.user.mobile }}
+                {% else %}
+                    User
+                {% endif %}
+            </h2>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Actions</h5>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'store:dispense' %}" class="btn btn-primary">
+                            <i class="fas fa-prescription"></i> Dispense Drugs
+                        </a>
+                        <a href="{% url 'store:forms' %}" class="btn btn-success">
+                            <i class="fas fa-file-medical"></i> View Forms
+                        </a>
+                        {% if user.is_staff %}
+                        <a href="{% url 'store:add_item' %}" class="btn btn-info">
+                            <i class="fas fa-plus"></i> Add Item
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Lpacemaker Drugs</h5>
+                    <p class="card-text">Total Items: {{ lpacemaker_count|default:"0" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">NCAP Drugs</h5>
+                    <p class="card-text">Total Items: {{ ncap_count|default:"0" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Oncology Drugs</h5>
+                    <p class="card-text">Total Items: {{ oncology_count|default:"0" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="col-12 mt-4">
+            <h3>Quick Actions</h3>
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'store:store' %}" class="btn btn-primary w-100">View Store</a>
+                </div>
+                {% if user.is_staff or user.is_superuser %}
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'store:add_item' %}" class="btn btn-success w-100">Add New Item</a>
+                </div>
+                {% endif %}
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'store:cart' %}" class="btn btn-info w-100">View Cart</a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="{% url 'store:logout_user' %}" class="btn btn-danger w-100">Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

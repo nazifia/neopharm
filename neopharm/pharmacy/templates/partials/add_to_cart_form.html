@@ -1,0 +1,30 @@
+<div class="add-to-cart-container" id="add-to-cart-{{ drug.id }}">
+    {% if success_message %}
+    <div class="alert alert-success alert-dismissible fade show py-2 mb-2" role="alert">
+        {{ success_message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+    
+    <form class="add-to-cart-form"
+          hx-post="{% url 'store:add_to_cart' drug_type=drug_type pk=drug.id %}"
+          hx-target="#add-to-cart-{{ drug.id }}"
+          hx-swap="outerHTML">
+        {% csrf_token %}
+        <div class="input-group">
+            <input type="number" 
+                   name="quantity" 
+                   value="1" 
+                   min="1" 
+                   max="{{ drug.stock }}"
+                   class="form-control form-control-sm"
+                   required>
+            <input type="hidden" name="unit" value="{{ drug.unit }}">
+            <button type="submit" 
+                    class="btn btn-primary btn-sm"
+                    {% if drug.stock < 1 %}disabled{% endif %}>
+                Add to Cart
+            </button>
+        </div>
+    </form>
+</div>

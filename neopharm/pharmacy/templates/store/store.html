@@ -1,0 +1,357 @@
+{% extends 'base.html' %}
+
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Search Bar -->
+    <div class="row mb-4">
+        <div class="col-md-8 offset-md-2">
+            <form hx-get="{% url 'store:search_items' %}" hx-target="#search-results" class="d-flex">
+                <input type="search" name="search" class="form-control form-control-lg" placeholder="Search items...">
+                <button type="submit" class="btn btn-primary ms-2">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Store Statistics -->
+    <div class="row mb-4">
+        <!-- Lpacemaker Stats -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-primary">
+                <div class="card-body">
+                    <h4 class="card-title text-primary">Lpacemaker Drugs</h4>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1">Total Items: <span class="badge bg-primary">{{ lpacemaker_stats.total_items }}</span></p>
+                            <p class="mb-1">Stock Value: <span class="badge bg-success">₦{{ lpacemaker_stats.total_stock_value|floatformat:2|intcomma }}</span></p>
+                            <p class="mb-0">Low Stock: <span class="badge bg-warning">{{ lpacemaker_stats.low_stock_items|length }}</span></p>
+                        </div>
+                        <i class="fas fa-pills fa-3x text-primary opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NCAP Stats -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-success">
+                <div class="card-body">
+                    <h4 class="card-title text-success">NCAP Drugs</h4>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1">Total Items: <span class="badge bg-success">{{ ncap_stats.total_items }}</span></p>
+                            <p class="mb-1">Stock Value: <span class="badge bg-success">₦{{ ncap_stats.total_stock_value|floatformat:2|intcomma }}</span></p>
+                            <p class="mb-0">Low Stock: <span class="badge bg-warning">{{ ncap_stats.low_stock_items|length }}</span></p>
+                        </div>
+                        <i class="fas fa-capsules fa-3x text-success opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Oncology Stats -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-info">
+                <div class="card-body">
+                    <h4 class="card-title text-info">Oncology Pharmacy</h4>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="mb-1">Total Items: <span class="badge bg-info">{{ oncology_stats.total_items }}</span></p>
+                            <p class="mb-1">Stock Value: <span class="badge bg-success">₦{{ oncology_stats.total_stock_value|floatformat:2|intcomma }}</span></p>
+                            <p class="mb-0">Low Stock: <span class="badge bg-warning">{{ oncology_stats.low_stock_items|length }}</span></p>
+                        </div>
+                        <i class="fas fa-prescription-bottle-alt fa-3x text-info opacity-25"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drug Lists -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-white">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#lpacemaker">Lpacemaker Drugs</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#ncap">NCAP Drugs</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#oncology">Oncology Drugs</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    <div class="tab-content">
+                        <!-- Lpacemaker Tab -->
+                        <div class="tab-pane fade show active" id="lpacemaker">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Brand</th>
+                                            <th>Unit</th>
+                                            <th>Price</th>
+                                            <th>Stock</th>
+                                            <th>Expiry Date</th>
+                                            {% if user.is_staff %}
+                                            <th>Actions</th>
+                                            {% endif %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for drug in lpacemaker_drugs %}
+                                        <tr>
+                                            <td>{{ drug.name }}</td>
+                                            <td>{{ drug.brand }}</td>
+                                            <td>{{ drug.unit }}</td>
+                                            <td>₦{{ drug.price|floatformat:2|intcomma }}</td>
+                                            <td>
+                                                <span class="badge {% if drug.stock < 10 %}bg-danger{% else %}bg-success{% endif %}">
+                                                    {{ drug.stock }}
+                                                </span>
+                                            </td>
+                                            <td>{{ drug.exp_date|date:"d/m/Y" }}</td>
+                                            {% if user.is_staff %}
+                                            <td>
+                                                <a href="{% url 'store:edit_item' 'lpacemaker' drug.id %}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <button class="btn btn-sm btn-danger" 
+                                                        onclick="confirmDelete('{% url 'store:delete_item' 'lpacemaker' drug.id %}')">
+                                                    <i class="fas fa-trash"></i> x
+                                                </button>
+                                                {% comment %} <button type="button" 
+                                                        class="btn btn-sm btn-warning" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#returnItemModal"
+                                                        hx-get="{% url 'store:return_lpacemaker_item' pk=drug.id %}"
+                                                        hx-target="#returnItemModal .modal-content"
+                                                        hx-trigger="click">
+                                                    <i class="fas fa-undo"></i> Return
+                                                </button> {% endcomment %}
+                                            </td>
+                                            {% endif %}
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- NCAP Tab -->
+                        <div class="tab-pane fade" id="ncap">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Brand</th>
+                                            <th>Unit</th>
+                                            <th>Price</th>
+                                            <th>Stock</th>
+                                            <th>Expiry Date</th>
+                                            {% if user.is_staff %}
+                                            <th>Actions</th>
+                                            {% endif %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for drug in ncap_drugs %}
+                                        <tr>
+                                            <td>{{ drug.name }}</td>
+                                            <td>{{ drug.brand }}</td>
+                                            <td>{{ drug.unit }}</td>
+                                            <td>₦{{ drug.price|floatformat:2|intcomma }}</td>
+                                            <td>
+                                                <span class="badge {% if drug.stock < 10 %}bg-danger{% else %}bg-success{% endif %}">
+                                                    {{ drug.stock }}
+                                                </span>
+                                            </td>
+                                            <td>{{ drug.exp_date|date:"d/m/Y" }}</td>
+                                            {% if user.is_staff %}
+                                            <td>
+                                                <a href="{% url 'store:edit_item' 'ncap' drug.id %}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <button class="btn btn-sm btn-danger" 
+                                                        onclick="confirmDelete('{% url 'store:delete_item' 'ncap' drug.id %}')">
+                                                    <i class="fas fa-trash"></i> x
+                                                </button>
+                                                {% comment %} <button type="button" 
+                                                        class="btn btn-sm btn-warning" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#returnItemModal"
+                                                        hx-get="{% url 'store:return_ncap_item' pk=drug.id %}"
+                                                        hx-target="#returnItemModal .modal-content"
+                                                        hx-trigger="click">
+                                                    <i class="fas fa-undo"></i> Return
+                                                </button> {% endcomment %}
+                                            </td>
+                                            {% endif %}
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Oncology Tab -->
+                        <div class="tab-pane fade" id="oncology">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Brand</th>
+                                            <th>Unit</th>
+                                            <th>Price</th>
+                                            <th>Stock</th>
+                                            <th>Expiry Date</th>
+                                            {% if user.is_staff %}
+                                            <th>Actions</th>
+                                            {% endif %}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for drug in oncology_drugs %}
+                                        <tr>
+                                            <td>{{ drug.name }}</td>
+                                            <td>{{ drug.brand }}</td>
+                                            <td>{{ drug.unit }}</td>
+                                            <td>₦{{ drug.price|floatformat:2 }}</td>
+                                            <td>
+                                                <span class="badge {% if drug.stock < 10 %}bg-danger{% else %}bg-success{% endif %}">
+                                                    {{ drug.stock }}
+                                                </span>
+                                            </td>
+                                            <td>{{ drug.exp_date|date:"d/m/Y" }}</td>
+                                            {% if user.is_staff %}
+                                            <td>
+                                                <a href="{% url 'store:edit_item' 'oncology' drug.id %}" class="btn btn-sm btn-primary">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <button class="btn btn-sm btn-danger" 
+                                                        onclick="confirmDelete('{% url 'store:delete_item' 'oncology' drug.id %}')">
+                                                    <i class="fas fa-trash"></i> x
+                                                </button>
+                                                {% comment %} <button type="button" 
+                                                        class="btn btn-sm btn-warning" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#returnItemModal"
+                                                        hx-get="{% url 'store:return_oncology_item' pk=drug.id %}"
+                                                        hx-target="#returnItemModal .modal-content"
+                                                        hx-trigger="click">
+                                                    <i class="fas fa-undo"></i> Return
+                                                </button> {% endcomment %}
+                                            </td>
+                                            {% endif %}
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Item Button (for staff only) -->
+    {% if user.is_staff %}
+    <div class="position-fixed bottom-0 end-0 p-3">
+        <a href="{% url 'store:add_item' %}" class="btn btn-lg btn-primary rounded-circle shadow">
+            <i class="fas fa-plus"></i> Add Item
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Delete Confirmation Script -->
+<script>
+function confirmDelete(deleteUrl) {
+    if (confirm('Are you sure you want to delete this item?')) {
+        window.location.href = deleteUrl;
+    }
+}
+
+function openReturnModal(drugType, drugId, drugName, unit) {
+    // Set the form values
+    document.getElementById('returnDrugType').value = drugType;
+    document.getElementById('returnDrugId').value = drugId;
+    document.getElementById('returnItemName').value = drugName;
+    document.getElementById('returnUnit').textContent = unit;
+    
+    // Set the form action URL
+    document.getElementById('returnItemForm').action = `/store/return/${drugType}/${drugId}/`;
+    
+    // Open the modal
+    var modal = new bootstrap.Modal(document.getElementById('returnItemModal'));
+    modal.show();
+}
+
+// Add form submission handler
+document.getElementById('returnItemForm').addEventListener('submit', function(e) {
+    const quantity = document.getElementById('returnQuantity').value;
+    if (!quantity || quantity <= 0) {
+        e.preventDefault();
+        alert('Please enter a valid quantity');
+    }
+});
+</script>
+
+<!-- Return Item Modal -->
+<div class="modal fade" id="returnItemModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="returnItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <!-- Modal content will be loaded here via HTMX -->
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the modal element
+    const returnModal = document.getElementById('returnItemModal');
+    
+    // Initialize the modal
+    const modal = new bootstrap.Modal(returnModal);
+    
+    // Handle modal events
+    returnModal.addEventListener('shown.bs.modal', function () {
+        // Focus on quantity input when modal is shown
+        const quantityInput = document.getElementById('return_quantity');
+        if (quantityInput) {
+            quantityInput.focus();
+        }
+    });
+
+    // Handle HTMX after swap
+    htmx.on("htmx:afterSwap", (e) => {
+        if (e.detail.target.closest('.modal-content')) {
+            // If the swap was successful and contains a success message, close the modal
+            if (e.detail.xhr.status === 200 && e.detail.xhr.responseText.includes('success')) {
+                modal.hide();
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
+
+
+
+
+
+
+
+
+

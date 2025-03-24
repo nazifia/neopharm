@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% load humanize %}
+
+{% block content %}
+{% if messages %}
+<div class="container mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="container">
+    <div class="row my-3">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <a href="{% url 'store:dispense' %}" class="btn btn-sm btn-success my-3">
+                    <i class="fas fa-pills"></i> Continue Dispensing
+                </a>
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Dispensing Cart</h4>
+                    {% if cart_items %}
+                    <form action="{% url 'store:clear_cart' %}" method="POST" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="btn btn-danger btn-sm"
+                                onclick="return confirm('Are you sure you want to clear the cart?')">
+                            <i class="fas fa-trash"></i> Clear Cart
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                
+                <div class="card-body p-0">
+                    {% if cart_items %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Unit</th>
+                                    <th>Quantity</th>
+                                    <th class="text-end">Price</th>
+                                    <th class="text-end">Subtotal</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in cart_items %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.get_item.name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ item.get_item.brand }}</small>
+                                    </td>
+                                    <td>{{ item.unit }}</td>
+                                    <td style="width: 150px;">
+                                        <form action="{% url 'store:update_cart' item.id %}" method="POST" class="d-flex gap-2">
+                                            {% csrf_token %}
+                                            <input type="number"
+                                                   name="quantity"
+                                                   value="{{ item.quantity }}"
+                                                   min="1"
+                                                   max="{{ item.get_item.stock }}"
+                                                   class="form-control form-control-sm"
+                                                   style="width: 70px">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-sync-alt"></i> Update
+                                            </button>
+                                        </form>
+                                    </td>
+                                    <td class="text-end">₦{{ item.price|floatformat:2|intcomma }}</td>
+                                    <td class="text-end">₦{{ item.subtotal|floatformat:2|intcomma }}</td>
+                                    <td class="text-end">
+                                        <form action="{% url 'store:remove_from_cart' item.id %}" method="POST" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" 
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Are you sure you want to remove this item?')">
+                                                <i class="fas fa-times"></i> Remove
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                        <h5>Your cart is empty</h5>
+                        <a href="{% url 'store:dispense' %}" class="btn btn-primary mt-3">
+                            <i class="fas fa-pills"></i> Continue Dispensing
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {% if cart_items %}
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Order Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal</span>
+                        <strong>₦{{ total_price|floatformat:2|intcomma }}</strong>
+                    </div>
+                    {% if total_discount %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Discount</span>
+                        <strong class="text-success">-₦{{ total_discount|intcomma }}</strong>
+                    </div>
+                    {% endif %}
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span>Total</span>
+                        <strong class="text-primary">₦{{ final_total|floatformat:2|intcomma }}</strong>
+                    </div>
+                    <form method="post" action="{% url 'store:receipt' %}" class="mt-3">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Patient Name</label>
+                            <input type="text" name="buyer_name" class="form-control" placeholder="Enter patient name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Hospital No</label>
+                            <input type="text" name="hospital_no" class="form-control" placeholder="Enter hospital number" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">NCAP No</label>
+                            <input type="text" name="ncap_no" class="form-control" placeholder="Enter NCAP number">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-file-alt"></i> Generate Form
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="card-title">Recent Forms</h5>
+        <p class="card-text">View your recent transaction forms and print receipts.</p>
+        <a href="{% url 'store:forms' %}" class="btn btn-primary">
+            <i class="fas fa-file-medical"></i> View Forms
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.body.addEventListener('htmx:afterRequest', function(evt) {
+    if (evt.detail.successful) {
+        location.reload();
+    }
+});
+</script>
+{% endblock %}
+
+
+
+
+
+

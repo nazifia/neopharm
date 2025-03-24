@@ -1,0 +1,98 @@
+{% load humanize %}
+
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+{% if success_message %}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{ success_message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<div id="cart-items-container">
+    {% if cart_items %}
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Item</th>
+                    <th>Unit</th>
+                    <th>Quantity</th>
+                    <th class="text-end">Price</th>
+                    <th class="text-end">Subtotal</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart_items %}
+                <tr id="cart-item-{{ item.id }}">
+                    <td>
+                        <strong>{{ item.get_item.name }}</strong>
+                        <br>
+                        <small class="text-muted">{{ item.get_item.brand }}</small>
+                    </td>
+                    <td>{{ item.unit }}</td>
+                    <td style="width: 150px;">
+                        <form hx-post="{% url 'store:update_cart' item.id %}"
+                              hx-target="#cart-items-container"
+                              hx-swap="outerHTML"
+                              hx-indicator="#spinner-{{ item.id }}"
+                              class="d-flex gap-2">
+                            {% csrf_token %}
+                            <input type="number"
+                                   name="quantity"
+                                   value="{{ item.quantity }}"
+                                   min="1"
+                                   max="{{ item.get_item.stock }}"
+                                   class="form-control form-control-sm"
+                                   style="width: 70px">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                <span class="spinner-border spinner-border-sm d-none" 
+                                      id="spinner-{{ item.id }}" 
+                                      role="status"></span>
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </form>
+                    </td>
+                    <td class="text-end">₦{{ item.price|floatformat:2|intcomma }}</td>
+                    <td class="text-end">₦{{ item.subtotal|floatformat:2|intcomma }}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-danger"
+                                hx-post="{% url 'store:remove_from_cart' item.id %}"
+                                hx-target="#cart-items-container"
+                                hx-swap="outerHTML"
+                                hx-confirm="Are you sure you want to remove this item?"
+                                hx-indicator="#spinner-remove-{{ item.id }}">
+                            <span class="spinner-border spinner-border-sm d-none" 
+                                  id="spinner-remove-{{ item.id }}" 
+                                  role="status"></span>
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                    <td class="text-end"><strong>₦{{ total_price|floatformat:2|intcomma }}</strong></td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+        <h5>Your cart is empty</h5>
+        <a href="{% url 'store:dispense' %}" class="btn btn-primary mt-3">
+            <i class="fas fa-pills"></i> Continue Dispensing
+        </a>
+    </div>
+    {% endif %}
+</div>

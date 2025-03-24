@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container my-3">
+    <div class="row mb-4">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Dispense Items</h4>
+                </div>
+                <div class="card-body">
+                    <form hx-get="{% url 'store:dispense' %}" 
+                          hx-target="#search-results" 
+                          hx-trigger="submit, change from:select[name='category']"
+                          hx-push-url="true"
+                          class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label class="form-label">Search Items</label>
+                            <input type="search" 
+                                   name="search" 
+                                   class="form-control" 
+                                   placeholder="Search by name or brand..."
+                                   value="{{ query|default:'' }}"
+                                   hx-trigger="keyup changed delay:500ms"
+                                   hx-get="{% url 'store:dispense' %}"
+                                   hx-target="#search-results">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Category</label>
+                            <select name="category" 
+                                    class="form-select">
+                                <option value="all" {% if category == 'all' %}selected{% endif %}>All Categories</option>
+                                <option value="lpacemaker" {% if category == 'lpacemaker' %}selected{% endif %}>Lpacemaker</option>
+                                <option value="ncap" {% if category == 'ncap' %}selected{% endif %}>NCAP</option>
+                                <option value="oncology" {% if category == 'oncology' %}selected{% endif %}>Oncology</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="search-results" class="mt-4">
+        {% include 'partials/dispense_results.html' %}
+    </div>
+</div>
+
+<!-- Cart Preview Modal -->
+<div class="modal fade" id="cartPreviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cart Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="cartPreviewContent"></div>
+            <div class="modal-footer">
+                <a href="{% url 'store:cart' %}" class="btn btn-primary">Go to Cart</a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continue Shopping</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    // Update cart count if available in response
+    const cartCountSpan = document.querySelector('#cart-count');
+    if (cartCountSpan) {
+        try {
+            const response = JSON.parse(evt.detail.xhr.response);
+            if (response.cart_count) {
+                cartCountSpan.textContent = response.cart_count;
+            }
+        } catch (e) {
+            // Response wasn't JSON, which is fine
+        }
+    }
+    
+    // Auto-dismiss success alerts after 3 seconds
+    const alerts = document.querySelectorAll('.alert-success');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            alert.remove();
+        }, 3000);
+    });
+});
+
+// Prevent form submission if quantity is invalid
+document.body.addEventListener('submit', function(evt) {
+    if (evt.target.matches('.add-to-cart-form')) {
+        const quantityInput = evt.target.querySelector('input[name="quantity"]');
+        const maxStock = parseInt(quantityInput.getAttribute('max'));
+        const quantity = parseInt(quantityInput.value);
+        
+        if (quantity <= 0 || quantity > maxStock) {
+            evt.preventDefault();
+            alert(`Please enter a quantity between 1 and ${maxStock}`);
+        }
+    }
+});
+</script>
+{% endblock %}
+
+
+
+
+

@@ -1,0 +1,126 @@
+{% load humanize %}
+<div class="row">
+    {% if query %}
+        <div class="col-12 mb-3">
+            <h4>Search Results for "{{ query }}"</h4>
+        </div>
+    {% endif %}
+
+    {% if not results.lpacemaker_items and not results.ncap_items and not results.oncology_items %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                No items found matching your search criteria.
+            </div>
+        </div>
+    {% else %}
+        {% for drug in results.lpacemaker_items %}
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ drug.name }}</h5>
+                    <p class="card-text">
+                        <strong>Brand:</strong> {{ drug.brand|default:"N/A" }}<br>
+                        <strong>Unit:</strong> {{ drug.unit }}<br>
+                        <strong>Price:</strong> ₦{{ drug.price|floatformat:2|intcomma }}<br>
+                        <strong>Stock:</strong> {{ drug.stock }}
+                    </p>
+                    <form method="POST" action="{% url 'store:add_to_cart' drug_type='lpacemaker' pk=drug.id %}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="number" 
+                                   name="quantity" 
+                                   value="1" 
+                                   min="1" 
+                                   max="{{ drug.stock }}"
+                                   class="form-control form-control-sm"
+                                   required>
+                            <input type="hidden" name="unit" value="{{ drug.unit }}">
+                            <button type="submit" 
+                                    class="btn btn-primary btn-sm"
+                                    {% if drug.stock < 1 %}disabled{% endif %}>
+                                Add to Cart
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% for drug in results.ncap_items %}
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ drug.name }}</h5>
+                    <p class="card-text">
+                        <strong>Brand:</strong> {{ drug.brand|default:"N/A" }}<br>
+                        <strong>Unit:</strong> {{ drug.unit }}<br>
+                        <strong>Price:</strong> ₦{{ drug.price|floatformat:2|intcomma }}<br>
+                        <strong>Stock:</strong> {{ drug.stock }}
+                    </p>
+                    <form method="POST" action="{% url 'store:add_to_cart' drug_type='ncap' pk=drug.id %}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="number" 
+                                   name="quantity" 
+                                   value="1" 
+                                   min="1" 
+                                   max="{{ drug.stock }}"
+                                   class="form-control form-control-sm"
+                                   required>
+                            <input type="hidden" name="unit" value="{{ drug.unit }}">
+                            <button type="submit" 
+                                    class="btn btn-primary btn-sm"
+                                    {% if drug.stock < 1 %}disabled{% endif %}>
+                                Add to Cart
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% for drug in results.oncology_items %}
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ drug.name }}</h5>
+                    <p class="card-text">
+                        <strong>Brand:</strong> {{ drug.brand|default:"N/A" }}<br>
+                        <strong>Unit:</strong> {{ drug.unit }}<br>
+                        <strong>Price:</strong> ₦{{ drug.price }}<br>
+                        <strong>Stock:</strong> {{ drug.stock }}
+                    </p>
+                    <form method="POST" action="{% url 'store:add_to_cart' drug_type='oncology' pk=drug.id %}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="number" 
+                                   name="quantity" 
+                                   value="1" 
+                                   min="1" 
+                                   max="{{ drug.stock }}"
+                                   class="form-control form-control-sm"
+                                   required>
+                            <input type="hidden" name="unit" value="{{ drug.unit }}">
+                            <button type="submit" 
+                                    class="btn btn-primary btn-sm"
+                                    {% if drug.stock < 1 %}disabled{% endif %}>
+                                Add to Cart
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% endif %}
+</div>
+
+
+
+
+
+
+
+
