@@ -9,11 +9,12 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.forms import formset_factory
 from .models import (
-    LpacemakerDrugs, 
-    NcapDrugs, 
-    OncologyPharmacy, 
-    Cart, 
-    Form, 
+    LpacemakerDrugs,
+    NcapDrugs,
+    OncologyPharmacy,
+    Cart,
+    Form,
+    FormItem,
 )
 from .forms import *
 from django.contrib import messages
@@ -40,13 +41,13 @@ def index(request):
     # If user is already authenticated, redirect to dashboard
     if request.user.is_authenticated:
         return redirect('store:dashboard')
-    
+
     # Handle login form submission
     if request.method == 'POST':
         mobile = request.POST.get('mobile')
         password = request.POST.get('password')
         next_url = request.POST.get('next') or request.GET.get('next') or 'store:dashboard'
-        
+
         user = authenticate(request, mobile=mobile, password=password)
         if user is not None:
             login(request, user)
@@ -59,7 +60,7 @@ def index(request):
             # Keep the next parameter in the URL when showing the error
             if next_url:
                 return redirect(f'{reverse("store:index")}?next={next_url}')
-    
+
     return render(request, 'store/index.html')
 
 
@@ -125,19 +126,19 @@ def store(request):
 def add_item(request):
     if request.method == 'POST':
         store_type = request.POST.get('store_type')
-        
+
         # Select the appropriate form based on store type
         form_classes = {
             'lpacemaker': LpacemakerDrugsForm,
             'ncap': NcapDrugsForm,
             'oncology': OncologyPharmacyForm
         }
-        
+
         FormClass = form_classes.get(store_type)
         if not FormClass:
             messages.error(request, 'Invalid store type selected')
             return redirect('store:add_item')
-            
+
         form = FormClass(request.POST)
         if form.is_valid():
             item = form.save()
@@ -147,13 +148,13 @@ def add_item(request):
             messages.error(request, 'Error creating item')
     else:
         form = None  # Form will be selected based on store type
-    
+
     context = {
         'form': form,
         'dosage_forms': DOSAGE_FORM,
         'units': UNIT,
     }
-    
+
     if request.headers.get('HX-Request'):
         return render(request, 'partials/add_item_modal.html', context)
     return render(request, 'store/add_item.html', context)
@@ -164,7 +165,7 @@ def add_item(request):
 def search_item(request):
     if not request.user.is_authenticated:
         return redirect('store:index')
-        
+
     query = request.GET.get('search', '').strip()
     if query:
         # Search across all drug models
@@ -177,7 +178,7 @@ def search_item(request):
         oncology_results = OncologyPharmacy.objects.filter(
             Q(name__icontains=query) | Q(brand__icontains=query)
         )
-        
+
         context = {
             'lpacemaker_items': lpacemaker_results,
             'ncap_items': ncap_results,
@@ -239,11 +240,11 @@ def dispense(request):
 def cart(request):
     if not request.user.is_authenticated:
         return redirect('store:index')
-        
+
     cart_items = Cart.objects.filter(user=request.user)
     total_price = sum(item.subtotal for item in cart_items)
     final_total = total_price  # Since we removed discounts
-    
+
     return render(request, 'store/cart.html', {
         'cart_items': cart_items,
         'total_price': total_price,
@@ -256,17 +257,17 @@ def cart(request):
 def add_to_cart(request, pk, drug_type):
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Authentication required'}, status=401)
-        
+
     drug_models = {
         'lpacemaker': LpacemakerDrugs,
         'ncap': NcapDrugs,
         'oncology': OncologyPharmacy
     }
-    
+
     DrugModel = drug_models.get(drug_type)
     if not DrugModel:
         return JsonResponse({'error': 'Invalid drug type'}, status=400)
-        
+
     try:
         drug = get_object_or_404(DrugModel, id=pk)
         quantity = int(request.POST.get('quantity', 1))
@@ -394,7 +395,7 @@ def view_cart(request):
             total_price += cart_item.subtotal
             # total_discount += cart_item.discount_amount
 
-        
+
         final_total = total_price - total_discount
 
         total_discounted_price = total_price - total_discount
@@ -415,40 +416,40 @@ def view_cart(request):
 def update_cart(request, pk):
     if request.user.is_authenticated:
         cart_item = get_object_or_404(Cart, id=pk, user=request.user)
-        
+
         if request.method == 'POST':
             try:
                 new_quantity = int(request.POST.get('quantity', 0))
                 drug = cart_item.get_item
-                
+
                 if new_quantity <= 0:
                     messages.error(request, "Quantity must be greater than zero")
                     return redirect('store:cart')
-                
+
                 quantity_diff = new_quantity - cart_item.quantity
-                
+
                 if quantity_diff > 0 and quantity_diff > drug.stock:
                     messages.error(request, f"Not enough stock. Available: {drug.stock}")
                     return redirect('store:cart')
-                
+
                 with transaction.atomic():
                     # Update stock
                     drug.stock -= quantity_diff
                     drug.save()
-                    
+
                     # Update cart item
                     cart_item.quantity = new_quantity
                     cart_item.save()
-                    
+
                     messages.success(request, f"Cart updated successfully. New quantity: {new_quantity}")
-                
+
             except ValueError:
                 messages.error(request, "Invalid quantity provided")
             except Exception as e:
                 messages.error(request, f"Error updating cart: {str(e)}")
-        
+
         return redirect('store:cart')
-    
+
     return redirect('store:index')
 
 
@@ -458,17 +459,17 @@ def update_cart(request, pk):
 def remove_from_cart(request, pk):
     if request.user.is_authenticated:
         cart_item = get_object_or_404(Cart, id=pk, user=request.user)
-        
+
         try:
             with transaction.atomic():
                 drug = cart_item.get_item
                 quantity_returned = cart_item.quantity
-                
+
                 if drug:
                     # Return quantity to stock
                     drug.stock += quantity_returned
                     drug.save()
-                    
+
                     # Create DispensingLog entry for removal
                     # DispensingLog.objects.create(
                     #     user=request.user,
@@ -477,16 +478,16 @@ def remove_from_cart(request, pk):
                     #     amount=drug.price * quantity_returned,
                     #     action='removed'
                     # )
-                
+
                 # Delete cart item
                 cart_item.delete()
                 messages.success(request, f"{quantity_returned} {drug.unit} of {drug.name} removed from cart")
-        
+
         except Exception as e:
             messages.error(request, f"Error removing item: {str(e)}")
-        
+
         return redirect('store:cart')
-    
+
     return redirect('store:index')
 
 
@@ -515,9 +516,9 @@ def clear_cart(request):
                     'total_price': 0,
                     'final_total': 0
                 })
-            
+
             return redirect('store:cart')
-    
+
     return redirect('store:index')
 
 
@@ -547,12 +548,44 @@ def receipt(request):
                 dispensed_by=request.user
             )
 
-            # Update cart items to associate with the form
-            cart_items.update(form=form)
+            # Create FormItem records for each cart item
+            for cart_item in cart_items:
+                drug = None
+                drug_type = None
+
+                if cart_item.lpacemaker_drug:
+                    drug = cart_item.lpacemaker_drug
+                    drug_type = 'LPACEMAKER'
+                elif cart_item.ncap_drug:
+                    drug = cart_item.ncap_drug
+                    drug_type = 'NCAP'
+                elif cart_item.oncology_drug:
+                    drug = cart_item.oncology_drug
+                    drug_type = 'ONCOLOGY'
+
+                if drug:
+                    FormItem.objects.create(
+                        form=form,
+                        drug_name=drug.name,
+                        drug_brand=drug.brand,
+                        drug_type=drug_type,
+                        unit=cart_item.unit,
+                        quantity=cart_item.quantity,
+                        price=drug.price,
+                        subtotal=cart_item.subtotal
+                    )
+
+            # Store cart items for context before clearing
+            cart_items_for_context = list(cart_items)
+
+            # Clear the cart without returning items to stock
+            # since they are being dispensed
+            cart_items.delete()
+            messages.success(request, 'Form generated successfully and cart cleared.')
 
             context = {
                 'form': form,
-                'cart_items': cart_items,
+                'cart_items': cart_items_for_context,
                 'total_price': total_price,
                 'user': request.user,
             }
@@ -569,7 +602,7 @@ def receipt(request):
 def receipt_detail(request, receipt_id):
     receipt = get_object_or_404(Receipt, receipt_id=receipt_id)
     sales_items = SalesItem.objects.filter(receipt=receipt)
-    
+
     if request.method == 'POST':
         # Only update buyer_name if there's no customer associated
         if not receipt.customer:
@@ -577,7 +610,7 @@ def receipt_detail(request, receipt_id):
         receipt.buyer_address = request.POST.get('buyer_address', '')
         receipt.payment_method = request.POST.get('payment_method', '')
         receipt.save()
-    
+
     context = {
         'receipt': receipt,
         'sales_items': sales_items,
@@ -591,7 +624,7 @@ def receipt_detail(request, receipt_id):
 def return_lpacemaker_item(request, pk):
     try:
         drug = get_object_or_404(LpacemakerDrugs, pk=pk)
-        
+
         if request.method == "POST":
             return_quantity = int(request.POST.get('return_quantity', 0))
             if return_quantity > 0:
@@ -601,12 +634,12 @@ def return_lpacemaker_item(request, pk):
                 return redirect('store:store')
             else:
                 messages.error(request, 'Please enter a valid quantity')
-        
+
         return render(request, 'store/return_item_modal.html', {
             'drug': drug,
             'drug_type': 'lpacemaker'
         })
-        
+
     except Exception as e:
         messages.error(request, f'Error processing return: {str(e)}')
         return HttpResponse(str(e), status=400)
@@ -616,7 +649,7 @@ def return_lpacemaker_item(request, pk):
 def return_ncap_item(request, pk):
     try:
         drug = get_object_or_404(NcapDrugs, pk=pk)
-        
+
         if request.method == "POST":
             return_quantity = int(request.POST.get('return_quantity', 0))
             if return_quantity > 0:
@@ -626,12 +659,12 @@ def return_ncap_item(request, pk):
                 return redirect('store:store')
             else:
                 messages.error(request, 'Please enter a valid quantity')
-        
+
         return render(request, 'store/return_item_modal.html', {
             'drug': drug,
             'drug_type': 'ncap'
         })
-        
+
     except Exception as e:
         messages.error(request, f'Error processing return: {str(e)}')
         return HttpResponse(str(e), status=400)
@@ -641,7 +674,7 @@ def return_ncap_item(request, pk):
 def return_oncology_item(request, pk):
     try:
         drug = get_object_or_404(OncologyPharmacy, pk=pk)
-        
+
         if request.method == "POST":
             return_quantity = int(request.POST.get('return_quantity', 0))
             if return_quantity > 0:
@@ -651,12 +684,12 @@ def return_oncology_item(request, pk):
                 return redirect('store:store')
             else:
                 messages.error(request, 'Please enter a valid quantity')
-        
+
         return render(request, 'store/return_item_modal.html', {
             'drug': drug,
             'drug_type': 'oncology'
         })
-        
+
     except Exception as e:
         messages.error(request, f'Error processing return: {str(e)}')
         return HttpResponse(str(e), status=400)
@@ -667,25 +700,25 @@ def return_oncology_item(request, pk):
 def delete_item(request, drug_type, pk):
     if not request.user.is_authenticated:
         return redirect('store:index')
-        
+
     drug_models = {
         'lpacemaker': LpacemakerDrugs,
         'ncap': NcapDrugs,
         'oncology': OncologyPharmacy
     }
-    
+
     DrugModel = drug_models.get(drug_type)
     if not DrugModel:
         messages.error(request, 'Invalid drug type')
         return redirect('store:store')
-    
+
     try:
         drug = get_object_or_404(DrugModel, pk=pk)
         drug.delete()
         messages.success(request, 'Item deleted successfully')
     except Exception as e:
         messages.error(request, f'Error deleting item: {str(e)}')
-    
+
     return redirect('store:store')
 
 def get_daily_sales():
@@ -743,9 +776,9 @@ def get_daily_sales():
 def remove_from_cart(request, pk):
     if not request.user.is_authenticated:
         return redirect('store:index')
-        
+
     cart_item = get_object_or_404(Cart, id=pk, user=request.user)
-    
+
     try:
         with transaction.atomic():
             # Return the quantity back to stock
@@ -753,25 +786,25 @@ def remove_from_cart(request, pk):
             if drug:
                 drug.stock += cart_item.quantity
                 drug.save()
-            
+
             # Delete the cart item
             cart_item.delete()
-            
+
             # Calculate new totals
             cart_items = Cart.objects.filter(user=request.user)
             total_price = sum(item.subtotal for item in cart_items)
-            
+
             if request.headers.get('HX-Request'):
                 return JsonResponse({
                     'total_price': float(total_price),
                     'cart_count': cart_items.count(),
                 })
-            
+
             messages.success(request, "Item removed from cart successfully.")
-            
+
     except Exception as e:
         messages.error(request, f"Error removing item: {str(e)}")
-    
+
     return redirect('store:cart')
 
 @login_required
@@ -782,14 +815,14 @@ def edit_item(request, drug_type, pk):
         'ncap': NcapDrugs,
         'oncology': OncologyPharmacy
     }
-    
+
     DrugModel = drug_models.get(drug_type)
     if not DrugModel:
         messages.error(request, 'Invalid drug type')
         return redirect('store:store')
-    
+
     drug = get_object_or_404(DrugModel, pk=pk)
-    
+
     if request.method == 'POST':
         form_classes = {
             'lpacemaker': LpacemakerDrugsForm,
@@ -798,7 +831,7 @@ def edit_item(request, drug_type, pk):
         }
         FormClass = form_classes.get(drug_type)
         form = FormClass(request.POST, instance=drug)
-        
+
         if form.is_valid():
             form.save()
             messages.success(request, f'Item updated successfully')
@@ -811,7 +844,7 @@ def edit_item(request, drug_type, pk):
         }
         FormClass = form_classes.get(drug_type)
         form = FormClass(instance=drug)
-    
+
     context = {
         'form': form,
         'drug': drug,
@@ -819,7 +852,7 @@ def edit_item(request, drug_type, pk):
         'dosage_forms': DOSAGE_FORM,
         'units': UNIT,
     }
-    
+
     if request.headers.get('HX-Request'):
         return render(request, 'partials/edit_item_modal.html', context)
     return render(request, 'store/edit_item.html', context)
@@ -837,25 +870,25 @@ def register_user(request):
             return redirect('store:dashboard')
     else:
         form = UserRegistrationForm()
-    
+
     return render(request, 'store/register.html', {'form': form})
 
 @login_required
 def profile(request):
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+
         if action == 'update_profile':
             user_form = UserProfileForm(request.POST, instance=request.user)
             profile_form = ProfileForm(request.POST, instance=request.user.profile)
-            
+
             if user_form.is_valid() and profile_form.is_valid():
                 with transaction.atomic():
                     user_form.save()
                     profile_form.save()
                 messages.success(request, 'Your profile has been updated successfully!')
                 return redirect('store:profile')
-                
+
         elif action == 'change_password':
             password_form = CustomPasswordChangeForm(request.user, request.POST)
             if password_form.is_valid():
@@ -879,59 +912,45 @@ def profile(request):
 
 @login_required
 def view_form(request, form_id):
-    form = get_object_or_404(
-        Form.objects.prefetch_related(
-            'cart_items',
-            'cart_items__lpacemaker_drug',
-            'cart_items__ncap_drug',
-            'cart_items__oncology_drug'
-        ),
-        form_id=form_id
-    )
-    
+    # Get the form with its related items
+    form = get_object_or_404(Form, form_id=form_id)
+
+    # Get form items
+    form_items = FormItem.objects.filter(form=form)
+
     # Prepare items for display
     items = []
-    for cart_item in form.cart_items.all():
-        drug = None
-        drug_type = None
-        
-        if cart_item.lpacemaker_drug:
-            drug = cart_item.lpacemaker_drug
-            drug_type = 'LPACEMAKER'
-        elif cart_item.ncap_drug:
-            drug = cart_item.ncap_drug
-            drug_type = 'NCAP'
-        elif cart_item.oncology_drug:
-            drug = cart_item.oncology_drug
-            drug_type = 'ONCOLOGY'
-            
-        if drug:
-            items.append({
-                'name': drug.name,
-                'brand': drug.brand,
-                'unit': cart_item.unit,
-                'quantity': cart_item.quantity,
-                'price': cart_item.price,
-                'subtotal': cart_item.subtotal,
-                'drug_type': drug_type
-            })
-    
+
+    for form_item in form_items:
+        items.append({
+            'name': form_item.drug_name,
+            'brand': form_item.drug_brand,
+            'unit': form_item.unit,
+            'quantity': form_item.quantity,
+            'price': form_item.price,
+            'subtotal': form_item.subtotal,
+            'drug_type': form_item.drug_type
+        })
+
+    # If no items were found, display a message
+    total_amount = sum(item['subtotal'] for item in items) if items else form.total_amount
+
     context = {
         'form': form,
         'items': items,
-        'total_amount': sum(item['subtotal'] for item in items)
+        'total_amount': total_amount
     }
-    
+
     return render(request, 'store/form_detail.html', context)
 
 @login_required
 def form_list(request):
     forms = Form.objects.all().order_by('-date')
-    
+
     context = {
         'forms': forms,
     }
-    
+
     if request.headers.get('HX-Request'):
         return render(request, 'partials/form_list.html', context)
     return render(request, 'store/forms.html', context)

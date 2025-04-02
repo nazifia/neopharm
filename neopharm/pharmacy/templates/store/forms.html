@@ -32,9 +32,9 @@
                                 <a href="{% url 'store:view_form' form.form_id %}" class="btn btn-sm btn-primary">
                                     <i class="fas fa-eye"></i> View
                                 </a>
-                                <button onclick="printForm('{{ form.form_id }}')" class="btn btn-sm btn-secondary">
+                                {% comment %} <button onclick="printForm('{{ form.form_id }}')" class="btn btn-sm btn-secondary">
                                     <i class="fas fa-print"></i> Print
-                                </button>
+                                </button> {% endcomment %}
                             </td>
                         </tr>
                         {% empty %}

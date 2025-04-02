@@ -8,6 +8,9 @@ from .models import (
     OncologyPharmacy,
     Cart,
     Form,
+    FormItem,
+    Profile,
+    OfflineTransaction
 )
 
 @admin.register(User)
@@ -16,14 +19,14 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('is_staff', 'is_active', 'date_joined')
     search_fields = ('username', 'mobile', 'email')
     ordering = ('-date_joined',)
-    
+
     fieldsets = (
         (None, {'fields': ('username', 'mobile', 'password')}),
         ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
     )
-    
+
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
@@ -36,20 +39,20 @@ class DrugAdminMixin:
     list_filter = ('dosage_form', 'unit', 'brand')
     search_fields = ('name', 'brand')
     ordering = ('name',)
-    
+
     def stock_status(self, obj):
         if obj.stock <= 0:
             return format_html('<span style="color: red;">Out of Stock</span>')
         elif obj.stock < 10:
             return format_html('<span style="color: orange;">Low Stock</span>')
         return format_html('<span style="color: green;">In Stock</span>')
-    
+
     stock_status.short_description = 'Stock Status'
 
 @admin.register(LpacemakerDrugs)
 class LpacemakerDrugsAdmin(DrugAdminMixin, admin.ModelAdmin):
     list_display = DrugAdminMixin.list_display + ('get_total_value',)
-    
+
     def get_total_value(self, obj):
         total = float(obj.price * obj.stock)
         formatted_total = '{:,.2f}'.format(total)
@@ -59,7 +62,7 @@ class LpacemakerDrugsAdmin(DrugAdminMixin, admin.ModelAdmin):
 @admin.register(NcapDrugs)
 class NcapDrugsAdmin(DrugAdminMixin, admin.ModelAdmin):
     list_display = DrugAdminMixin.list_display + ('get_total_value',)
-    
+
     def get_total_value(self, obj):
         total = float(obj.price * obj.stock)
         formatted_total = '{:,.2f}'.format(total)
@@ -69,7 +72,7 @@ class NcapDrugsAdmin(DrugAdminMixin, admin.ModelAdmin):
 @admin.register(OncologyPharmacy)
 class OncologyPharmacyAdmin(DrugAdminMixin, admin.ModelAdmin):
     list_display = DrugAdminMixin.list_display + ('get_total_value',)
-    
+
     def get_total_value(self, obj):
         total = float(obj.price * obj.stock)
         formatted_total = '{:,.2f}'.format(total)
@@ -82,7 +85,7 @@ class CartAdmin(admin.ModelAdmin):
     list_filter = ('created_at', 'user')
     search_fields = ('cart_id', 'user__username', 'user__mobile')
     readonly_fields = ('cart_id', 'created_at')
-    
+
     def get_drug_name(self, obj):
         if obj.lpacemaker_drug:
             return f"Lpacemaker: {obj.lpacemaker_drug.name}"
@@ -93,13 +96,24 @@ class CartAdmin(admin.ModelAdmin):
         return "No drug selected"
     get_drug_name.short_description = 'Drug'
 
+class FormItemInline(admin.TabularInline):
+    model = FormItem
+    extra = 0
+    readonly_fields = ('drug_name', 'drug_brand', 'drug_type', 'unit', 'quantity', 'price', 'subtotal')
+    can_delete = False
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(Form)
 class FormAdmin(admin.ModelAdmin):
     list_display = ('form_id', 'buyer_name', 'total_amount', 'date', 'dispensed_by')
     list_filter = ('date', 'dispensed_by')
     search_fields = ('form_id', 'buyer_name', 'hospital_no', 'ncap_no')
     readonly_fields = ('form_id',)
-    
+    inlines = [FormItemInline]
+
     fieldsets = (
         ('Form Information', {
             'fields': ('form_id', 'buyer_name', 'hospital_no', 'ncap_no')
@@ -111,11 +125,19 @@ class FormAdmin(admin.ModelAdmin):
             'fields': ('date', 'dispensed_by')
         }),
     )
-    
+
     def get_readonly_fields(self, request, obj=None):
         if obj:  # editing an existing object
             return self.readonly_fields + ('form_id', 'date')
         return self.readonly_fields
+
+
+@admin.register(FormItem)
+class FormItemAdmin(admin.ModelAdmin):
+    list_display = ('form', 'drug_name', 'drug_type', 'quantity', 'price', 'subtotal')
+    list_filter = ('drug_type', 'form')
+    search_fields = ('drug_name', 'drug_brand', 'form__form_id')
+    readonly_fields = ('form', 'drug_name', 'drug_brand', 'drug_type', 'unit', 'quantity', 'price', 'subtotal')
 
     def save_model(self, request, obj, form, change):
         if not change:  # if creating new object

@@ -8,6 +8,8 @@ from shortuuid.django_fields import ShortUUIDField
 from datetime import datetime
 from decimal import Decimal
 from django.conf import settings
+import json
+from django.core.serializers.json import DjangoJSONEncoder
 
 
 # Create your models here.
@@ -61,10 +63,10 @@ class User(AbstractUser):
     user_permissions = models.ManyToManyField(Permission, related_name="pharmacy_user_permissions", blank=True)
     username = models.CharField(max_length=200, null=True, blank=True)
     mobile = models.CharField(max_length=20, unique=True)
-    
+
     USERNAME_FIELD = 'mobile'
     REQUIRED_FIELDS = ['username']
-    
+
     def __str__(self):
         return self.username if self.username else self.mobile
 
@@ -86,7 +88,7 @@ class Profile(models.Model):
     # image = models.ImageField(upload_to='uploads/images/', blank=True, null=True)
     full_name = models.CharField(max_length=200, blank=True, null=True)
     user_type = models.CharField(max_length=200, choices=USER_TYPE, blank=True, null=True)
-    
+
     def __str__(self):
         return f'{self.user.username} {self.user_type}'
 
@@ -104,11 +106,11 @@ class LpacemakerDrugs(models.Model):
     # markup = models.DecimalField(max_digits=6, decimal_places=2, default=0, choices=MARKUP_CHOICES)
     stock = models.PositiveIntegerField(default=0, null=True, blank=True)
     # low_stock_threshold = models.PositiveIntegerField(default=0, null=True, blank=True)
-    exp_date = models.DateField(null=True, blank=True)    
-    
+    exp_date = models.DateField(null=True, blank=True)
+
     class Meta:
         ordering = ('name',)
-    
+
     def __str__(self):
         return f'{self.name} {self.brand} {self.unit} {self.price} {self.stock} {self.exp_date}'
 
@@ -124,15 +126,15 @@ class NcapDrugs(models.Model):
     # markup = models.DecimalField(max_digits=6, decimal_places=2, default=0, choices=MARKUP_CHOICES)
     stock = models.PositiveIntegerField(default=0, null=True, blank=True)
     # low_stock_threshold = models.PositiveIntegerField(default=0, null=True, blank=True)
-    exp_date = models.DateField(null=True, blank=True)    
-    
+    exp_date = models.DateField(null=True, blank=True)
+
     class Meta:
         ordering = ('name',)
-    
+
     def __str__(self):
         return f'{self.name} {self.unit} {self.price} {self.stock} {self.exp_date}'
-    
-    
+
+
 
 class OncologyPharmacy(models.Model):
     name = models.CharField(max_length=200)
@@ -144,11 +146,11 @@ class OncologyPharmacy(models.Model):
     # markup = models.DecimalField(max_digits=6, decimal_places=2, default=0, choices=MARKUP_CHOICES)
     stock = models.PositiveIntegerField(default=0, null=True, blank=True)
     # low_stock_threshold = models.PositiveIntegerField(default=0, null=True, blank=True)
-    exp_date = models.DateField(null=True, blank=True)    
-    
+    exp_date = models.DateField(null=True, blank=True)
+
     class Meta:
         ordering = ('name',)
-    
+
     def __str__(self):
         return f'{self.name} {self.brand} {self.unit} {self.price} {self.stock} {self.exp_date}'
 
@@ -171,19 +173,19 @@ class Cart(models.Model):
 
     def __str__(self):
         return f'{self.cart_id} {self.user}'
-    
+
     @property
     def get_item(self):
         """Returns the active drug item"""
         return self.lpacemaker_drug or self.ncap_drug or self.oncology_drug
-    
+
     @property
     def calculate_subtotal(self):
         item = self.get_item
         if item:
             return item.price * self.quantity
         return Decimal('0')
-    
+
     def save(self, *args, **kwargs):
         self.subtotal = self.calculate_subtotal
         super().save(*args, **kwargs)
@@ -219,3 +221,44 @@ class Form(models.Model):
 
     def __str__(self):
         return f"Form {self.form_id} - {self.buyer_name}"
+
+
+class FormItem(models.Model):
+    form = models.ForeignKey(Form, on_delete=models.CASCADE, related_name='items')
+    drug_name = models.CharField(max_length=255)
+    drug_brand = models.CharField(max_length=255, null=True, blank=True)
+    drug_type = models.CharField(max_length=50)  # LPACEMAKER, NCAP, ONCOLOGY
+    unit = models.CharField(max_length=50)
+    quantity = models.PositiveIntegerField()
+    price = models.DecimalField(max_digits=12, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.drug_name} - {self.form.form_id}"
+
+
+class OfflineTransaction(models.Model):
+    TRANSACTION_TYPES = (
+        ('ADD_TO_CART', 'Add to Cart'),
+        ('REMOVE_FROM_CART', 'Remove from Cart'),
+        ('CHECKOUT', 'Checkout'),
+    )
+
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    data = models.JSONField(encoder=DjangoJSONEncoder)
+    created_at = models.DateTimeField(auto_now_add=True)
+    synced = models.BooleanField(default=False)
+    retry_count = models.IntegerField(default=0)
+    version = models.IntegerField(default=1)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def process(self):
+        if self.transaction_type == 'ADD_TO_CART':
+            cart = Cart.objects.get(user=self.data['user_id'])
+            # Process add to cart logic
+            pass
+        elif self.transaction_type == 'CHECKOUT':
+            # Process checkout logic
+            pass
