@@ -26,7 +26,7 @@
                     {% if cart_items %}
                     <form action="{% url 'store:clear_cart' %}" method="POST" style="display: inline;">
                         {% csrf_token %}
-                        <button type="submit" 
+                        <button type="submit"
                                 class="btn btn-danger btn-sm"
                                 onclick="return confirm('Are you sure you want to clear the cart?')">
                             <i class="fas fa-trash"></i> Clear Cart
@@ -34,7 +34,7 @@
                     </form>
                     {% endif %}
                 </div>
-                
+
                 <div class="card-body p-0">
                     {% if cart_items %}
                     <div class="table-responsive">
@@ -65,7 +65,6 @@
                                                    name="quantity"
                                                    value="{{ item.quantity }}"
                                                    min="1"
-                                                   max="{{ item.get_item.stock }}"
                                                    class="form-control form-control-sm"
                                                    style="width: 70px">
                                             <button type="submit" class="btn btn-sm btn-outline-primary">
@@ -78,7 +77,7 @@
                                     <td class="text-end">
                                         <form action="{% url 'store:remove_from_cart' item.id %}" method="POST" class="d-inline">
                                             {% csrf_token %}
-                                            <button type="submit" 
+                                            <button type="submit"
                                                     class="btn btn-sm btn-outline-danger"
                                                     onclick="return confirm('Are you sure you want to remove this item?')">
                                                 <i class="fas fa-times"></i> Remove

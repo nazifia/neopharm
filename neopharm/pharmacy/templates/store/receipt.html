@@ -66,7 +66,25 @@
                         {% endfor %}
                     </tbody>
                     <tfoot>
-                        <tr>
+                        {% if category_totals.LPACEMAKER > 0 %}
+                        <tr class="category-total-row lpacemaker-row">
+                            <td colspan="4" class="text-end"><span class="badge bg-info">LPACEMAKER</span> Subtotal:</td>
+                            <td class="text-end">₦{{ category_totals.LPACEMAKER|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if category_totals.NCAP > 0 %}
+                        <tr class="category-total-row ncap-row">
+                            <td colspan="4" class="text-end"><span class="badge bg-info">NCAP</span> Subtotal:</td>
+                            <td class="text-end">₦{{ category_totals.NCAP|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if category_totals.ONCOLOGY > 0 %}
+                        <tr class="category-total-row oncology-row">
+                            <td colspan="4" class="text-end"><span class="badge bg-info">ONCOLOGY</span> Subtotal:</td>
+                            <td class="text-end">₦{{ category_totals.ONCOLOGY|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="table-active">
                             <td colspan="4" class="text-end"><strong>Total Amount:</strong></td>
                             <td class="text-end"><strong>₦{{ total_price|floatformat:2|intcomma }}</strong></td>
                         </tr>
@@ -95,6 +113,12 @@
 </div>
 
 <style>
+    /* Category total rows styling */
+    .category-total-row td { font-weight: 500; }
+    .category-total-row.lpacemaker-row { background-color: rgba(227, 242, 253, 0.3); }
+    .category-total-row.ncap-row { background-color: rgba(243, 229, 245, 0.3); }
+    .category-total-row.oncology-row { background-color: rgba(232, 245, 233, 0.3); }
+
     @media print {
         .btn, .navbar, footer {
             display: none !important;
@@ -112,6 +136,9 @@
             color: #000 !important;
             background-color: transparent !important;
         }
+        .category-total-row.lpacemaker-row { background-color: rgba(227, 242, 253, 0.1) !important; }
+        .category-total-row.ncap-row { background-color: rgba(243, 229, 245, 0.1) !important; }
+        .category-total-row.oncology-row { background-color: rgba(232, 245, 233, 0.1) !important; }
     }
 </style>
 {% endblock %}

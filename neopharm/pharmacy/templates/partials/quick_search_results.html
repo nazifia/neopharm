@@ -18,12 +18,10 @@
                            name="quantity"
                            value="1"
                            min="1"
-                           max="{{ drug.stock }}"
                            class="form-control form-control-sm"
                            style="width: 70px">
                     <button type="submit"
-                            class="btn btn-sm btn-primary"
-                            {% if drug.stock < 1 %}disabled{% endif %}>
+                            class="btn btn-sm btn-primary">
                         <i class="fas fa-plus"></i> Add
                     </button>
                 </form>

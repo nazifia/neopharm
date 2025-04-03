@@ -9,16 +9,16 @@
                     <h4 class="mb-0">Dispense Items</h4>
                 </div>
                 <div class="card-body">
-                    <form hx-get="{% url 'store:dispense' %}" 
-                          hx-target="#search-results" 
+                    <form hx-get="{% url 'store:dispense' %}"
+                          hx-target="#search-results"
                           hx-trigger="submit, change from:select[name='category']"
                           hx-push-url="true"
                           class="row g-3 align-items-end">
                         <div class="col-md-6">
                             <label class="form-label">Search Items</label>
-                            <input type="search" 
-                                   name="search" 
-                                   class="form-control" 
+                            <input type="search"
+                                   name="search"
+                                   class="form-control"
                                    placeholder="Search by name or brand..."
                                    value="{{ query|default:'' }}"
                                    hx-trigger="keyup changed delay:500ms"
@@ -27,7 +27,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Category</label>
-                            <select name="category" 
+                            <select name="category"
                                     class="form-select">
                                 <option value="all" {% if category == 'all' %}selected{% endif %}>All Categories</option>
                                 <option value="lpacemaker" {% if category == 'lpacemaker' %}selected{% endif %}>Lpacemaker</option>
@@ -79,7 +79,7 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
             // Response wasn't JSON, which is fine
         }
     }
-    
+
     // Auto-dismiss success alerts after 3 seconds
     const alerts = document.querySelectorAll('.alert-success');
     alerts.forEach(alert => {
@@ -89,16 +89,15 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
     });
 });
 
-// Prevent form submission if quantity is invalid
+// Only validate that quantity is greater than zero
 document.body.addEventListener('submit', function(evt) {
     if (evt.target.matches('.add-to-cart-form')) {
         const quantityInput = evt.target.querySelector('input[name="quantity"]');
-        const maxStock = parseInt(quantityInput.getAttribute('max'));
         const quantity = parseInt(quantityInput.value);
-        
-        if (quantity <= 0 || quantity > maxStock) {
+
+        if (quantity <= 0) {
             evt.preventDefault();
-            alert(`Please enter a quantity between 1 and ${maxStock}`);
+            alert('Please enter a quantity greater than zero');
         }
     }
 });

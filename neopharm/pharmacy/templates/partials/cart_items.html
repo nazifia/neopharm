@@ -48,12 +48,11 @@
                                    name="quantity"
                                    value="{{ item.quantity }}"
                                    min="1"
-                                   max="{{ item.get_item.stock }}"
                                    class="form-control form-control-sm"
                                    style="width: 70px">
                             <button type="submit" class="btn btn-sm btn-outline-primary">
-                                <span class="spinner-border spinner-border-sm d-none" 
-                                      id="spinner-{{ item.id }}" 
+                                <span class="spinner-border spinner-border-sm d-none"
+                                      id="spinner-{{ item.id }}"
                                       role="status"></span>
                                 <i class="fas fa-sync-alt"></i>
                             </button>
@@ -68,8 +67,8 @@
                                 hx-swap="outerHTML"
                                 hx-confirm="Are you sure you want to remove this item?"
                                 hx-indicator="#spinner-remove-{{ item.id }}">
-                            <span class="spinner-border spinner-border-sm d-none" 
-                                  id="spinner-remove-{{ item.id }}" 
+                            <span class="spinner-border spinner-border-sm d-none"
+                                  id="spinner-remove-{{ item.id }}"
                                   role="status"></span>
                             <i class="fas fa-times"></i>
                         </button>

@@ -27,17 +27,15 @@
                     <form method="POST" action="{% url 'store:add_to_cart' drug_type='lpacemaker' pk=drug.id %}">
                         {% csrf_token %}
                         <div class="input-group">
-                            <input type="number" 
-                                   name="quantity" 
-                                   value="1" 
-                                   min="1" 
-                                   max="{{ drug.stock }}"
+                            <input type="number"
+                                   name="quantity"
+                                   value="1"
+                                   min="1"
                                    class="form-control form-control-sm"
                                    required>
                             <input type="hidden" name="unit" value="{{ drug.unit }}">
-                            <button type="submit" 
-                                    class="btn btn-primary btn-sm"
-                                    {% if drug.stock < 1 %}disabled{% endif %}>
+                            <button type="submit"
+                                    class="btn btn-primary btn-sm">
                                 Add to Cart
                             </button>
                         </div>
@@ -61,17 +59,15 @@
                     <form method="POST" action="{% url 'store:add_to_cart' drug_type='ncap' pk=drug.id %}">
                         {% csrf_token %}
                         <div class="input-group">
-                            <input type="number" 
-                                   name="quantity" 
-                                   value="1" 
-                                   min="1" 
-                                   max="{{ drug.stock }}"
+                            <input type="number"
+                                   name="quantity"
+                                   value="1"
+                                   min="1"
                                    class="form-control form-control-sm"
                                    required>
                             <input type="hidden" name="unit" value="{{ drug.unit }}">
-                            <button type="submit" 
-                                    class="btn btn-primary btn-sm"
-                                    {% if drug.stock < 1 %}disabled{% endif %}>
+                            <button type="submit"
+                                    class="btn btn-primary btn-sm">
                                 Add to Cart
                             </button>
                         </div>
@@ -95,17 +91,15 @@
                     <form method="POST" action="{% url 'store:add_to_cart' drug_type='oncology' pk=drug.id %}">
                         {% csrf_token %}
                         <div class="input-group">
-                            <input type="number" 
-                                   name="quantity" 
-                                   value="1" 
-                                   min="1" 
-                                   max="{{ drug.stock }}"
+                            <input type="number"
+                                   name="quantity"
+                                   value="1"
+                                   min="1"
                                    class="form-control form-control-sm"
                                    required>
                             <input type="hidden" name="unit" value="{{ drug.unit }}">
-                            <button type="submit" 
-                                    class="btn btn-primary btn-sm"
-                                    {% if drug.stock < 1 %}disabled{% endif %}>
+                            <button type="submit"
+                                    class="btn btn-primary btn-sm">
                                 Add to Cart
                             </button>
                         </div>

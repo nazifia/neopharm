@@ -29,6 +29,12 @@
     .drug-type-LPACEMAKER { background-color: #e3f2fd; color: #0d47a1; }
     .drug-type-NCAP { background-color: #f3e5f5; color: #4a148c; }
     .drug-type-ONCOLOGY { background-color: #e8f5e9; color: #1b5e20; }
+
+    /* Category total rows styling */
+    .category-total-row td { font-weight: 500; }
+    .category-total-row.lpacemaker-row { background-color: rgba(227, 242, 253, 0.3); }
+    .category-total-row.ncap-row { background-color: rgba(243, 229, 245, 0.3); }
+    .category-total-row.oncology-row { background-color: rgba(232, 245, 233, 0.3); }
 </style>
 {% endblock %}
 
@@ -105,7 +111,25 @@
                         {% endfor %}
                     </tbody>
                     <tfoot>
-                        <tr>
+                        {% if category_totals.LPACEMAKER > 0 %}
+                        <tr class="category-total-row lpacemaker-row">
+                            <td colspan="4" class="text-end"><span class="drug-type-badge drug-type-LPACEMAKER">LPACEMAKER</span> Subtotal:</td>
+                            <td class="text-end">₦{{ category_totals.LPACEMAKER|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if category_totals.NCAP > 0 %}
+                        <tr class="category-total-row ncap-row">
+                            <td colspan="4" class="text-end"><span class="drug-type-badge drug-type-NCAP">NCAP</span> Subtotal:</td>
+                            <td class="text-end">₦{{ category_totals.NCAP|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if category_totals.ONCOLOGY > 0 %}
+                        <tr class="category-total-row oncology-row">
+                            <td colspan="4" class="text-end"><span class="drug-type-badge drug-type-ONCOLOGY">ONCOLOGY</span> Subtotal:</td>
+                            <td class="text-end">₦{{ category_totals.ONCOLOGY|floatformat:2|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="table-active">
                             <td colspan="4" class="text-end"><strong>Total Amount:</strong></td>
                             <td class="text-end"><strong>₦{{ total_amount|floatformat:2|intcomma }}</strong></td>
                         </tr>
@@ -116,7 +140,7 @@
             <!-- Footer Information -->
             <div class="row mt-4">
                 <div class="col-sm-6">
-                    <p><strong>Dispensed By:</strong> {{ form.dispensed_by.get_full_name|default:form.dispensed_by.username }}</p>
+                    <p><strong>Generated_by:</strong> {{ user.get_full_name }}</p>ed By:</strong> {{ form.dispensed_by.get_full_name|default:form.dispensed_by.username }}</p>
                 </div>
                 <div class="col-sm-6 text-end">
                     <button onclick="window.print()" class="btn btn-primary no-print">
@@ -132,7 +156,41 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Add any additional JavaScript functionality here
+        // Add filter buttons above the table
+        const tableContainer = document.querySelector('.table-responsive');
+        const filterContainer = document.createElement('div');
+        filterContainer.className = 'mb-3 no-print';
+        filterContainer.innerHTML = `
+            <div class="btn-group" role="group" aria-label="Filter by category">
+                <button type="button" class="btn btn-outline-primary active" data-filter="all">All Categories</button>
+                <button type="button" class="btn btn-outline-primary" data-filter="LPACEMAKER">LPACEMAKER</button>
+                <button type="button" class="btn btn-outline-primary" data-filter="NCAP">NCAP</button>
+                <button type="button" class="btn btn-outline-primary" data-filter="ONCOLOGY">ONCOLOGY</button>
+            </div>
+        `;
+        tableContainer.parentNode.insertBefore(filterContainer, tableContainer);
+
+        // Add filter functionality
+        const filterButtons = document.querySelectorAll('[data-filter]');
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+
+                const filter = this.getAttribute('data-filter');
+                const rows = document.querySelectorAll('tbody tr');
+
+                rows.forEach(row => {
+                    const drugType = row.querySelector('.drug-type-badge')?.textContent.trim();
+                    if (filter === 'all' || drugType === filter) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        });
     });
 </script>
 {% endblock %}

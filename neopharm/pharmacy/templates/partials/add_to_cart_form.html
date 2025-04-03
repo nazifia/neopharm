@@ -5,24 +5,22 @@
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
     {% endif %}
-    
+
     <form class="add-to-cart-form"
           hx-post="{% url 'store:add_to_cart' drug_type=drug_type pk=drug.id %}"
           hx-target="#add-to-cart-{{ drug.id }}"
           hx-swap="outerHTML">
         {% csrf_token %}
         <div class="input-group">
-            <input type="number" 
-                   name="quantity" 
-                   value="1" 
-                   min="1" 
-                   max="{{ drug.stock }}"
+            <input type="number"
+                   name="quantity"
+                   value="1"
+                   min="1"
                    class="form-control form-control-sm"
                    required>
             <input type="hidden" name="unit" value="{{ drug.unit }}">
-            <button type="submit" 
-                    class="btn btn-primary btn-sm"
-                    {% if drug.stock < 1 %}disabled{% endif %}>
+            <button type="submit"
+                    class="btn btn-primary btn-sm">
                 Add to Cart
             </button>
         </div>

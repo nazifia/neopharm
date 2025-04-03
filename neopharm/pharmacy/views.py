@@ -212,17 +212,17 @@ def dispense(request):
 
         if category in ['all', 'lpacemaker']:
             results['lpacemaker_items'] = LpacemakerDrugs.objects.filter(
-                search_filter, stock__gt=0
+                search_filter
             )
 
         if category in ['all', 'ncap']:
             results['ncap_items'] = NcapDrugs.objects.filter(
-                search_filter, stock__gt=0
+                search_filter
             )
 
         if category in ['all', 'oncology']:
             results['oncology_items'] = OncologyPharmacy.objects.filter(
-                search_filter, stock__gt=0
+                search_filter
             )
 
     context = {
@@ -277,9 +277,7 @@ def add_to_cart(request, pk, drug_type):
             messages.error(request, 'Quantity must be greater than zero')
             return redirect('store:dispense')
 
-        if quantity > drug.stock:
-            messages.error(request, f'Not enough stock. Available: {drug.stock}')
-            return redirect('store:dispense')
+        # Stock check removed - allowing to add items regardless of stock level
 
         with transaction.atomic():
             # Create or update cart item
@@ -303,9 +301,7 @@ def add_to_cart(request, pk, drug_type):
                 cart_item.quantity = quantity
                 cart_item.save()
 
-            # Update stock quantity
-            drug.stock -= quantity
-            drug.save()
+            # Stock reduction removed - no longer reducing stock when adding to cart
 
             messages.success(request, f'Added {quantity} {unit} of {drug.name} to cart')
             return redirect('store:cart')
@@ -339,8 +335,7 @@ def quick_dispense(request, drug_type, pk):
         if quantity <= 0:
             return HttpResponse("Quantity must be greater than zero", status=400)
 
-        if quantity > drug.stock:
-            return HttpResponse(f"Not enough stock. Available: {drug.stock}", status=400)
+        # Stock check removed - allowing to add items regardless of stock level
 
         cart_kwargs = {
             'user': request.user,
@@ -360,8 +355,7 @@ def quick_dispense(request, drug_type, pk):
             cart_item.quantity += quantity
             cart_item.save()
 
-        drug.stock -= quantity
-        drug.save()
+        # Stock reduction removed - no longer reducing stock when adding to cart
 
         if request.headers.get('HX-Request'):
             return HttpResponse(
@@ -428,14 +422,10 @@ def update_cart(request, pk):
 
                 quantity_diff = new_quantity - cart_item.quantity
 
-                if quantity_diff > 0 and quantity_diff > drug.stock:
-                    messages.error(request, f"Not enough stock. Available: {drug.stock}")
-                    return redirect('store:cart')
+                # Stock check removed - allowing to update cart regardless of stock level
 
                 with transaction.atomic():
-                    # Update stock
-                    drug.stock -= quantity_diff
-                    drug.save()
+                    # Stock update removed - no longer updating stock when modifying cart
 
                     # Update cart item
                     cart_item.quantity = new_quantity
@@ -465,23 +455,20 @@ def remove_from_cart(request, pk):
                 drug = cart_item.get_item
                 quantity_returned = cart_item.quantity
 
-                if drug:
-                    # Return quantity to stock
-                    drug.stock += quantity_returned
-                    drug.save()
+                # Stock update removed - no longer returning quantity to stock when removing from cart
 
-                    # Create DispensingLog entry for removal
-                    # DispensingLog.objects.create(
-                    #     user=request.user,
-                    #     name=drug.name,
-                    #     quantity=quantity_returned,
-                    #     amount=drug.price * quantity_returned,
-                    #     action='removed'
-                    # )
+                # Create DispensingLog entry for removal
+                # DispensingLog.objects.create(
+                #     user=request.user,
+                #     name=drug.name,
+                #     quantity=quantity_returned,
+                #     amount=drug.price * quantity_returned,
+                #     action='removed'
+                # )
 
                 # Delete cart item
                 cart_item.delete()
-                messages.success(request, f"{quantity_returned} {drug.unit} of {drug.name} removed from cart")
+                messages.success(request, f"Item removed from cart successfully")
 
         except Exception as e:
             messages.error(request, f"Error removing item: {str(e)}")
@@ -499,16 +486,11 @@ def clear_cart(request):
             cart_items = Cart.objects.filter(user=request.user)
 
             with transaction.atomic():
-                for cart_item in cart_items:
-                    # Return items to stock
-                    drug = cart_item.get_item
-                    if drug:
-                        drug.stock += cart_item.quantity
-                        drug.save()
+                # Stock update removed - no longer returning items to stock when clearing cart
 
                 # Clear cart items
                 cart_items.delete()
-                messages.success(request, 'Cart cleared and items returned to stock.')
+                messages.success(request, 'Cart cleared successfully.')
 
             if request.headers.get('HX-Request'):
                 return render(request, 'partials/cart_items.html', {
@@ -535,7 +517,24 @@ def receipt(request):
         messages.warning(request, "No items in the cart.")
         return redirect('store:cart')
 
+    # Calculate total price and category totals
     total_price = sum(item.subtotal for item in cart_items)
+
+    # Initialize category totals
+    category_totals = {
+        'LPACEMAKER': Decimal('0.00'),
+        'NCAP': Decimal('0.00'),
+        'ONCOLOGY': Decimal('0.00')
+    }
+
+    # Calculate category totals
+    for item in cart_items:
+        if item.lpacemaker_drug:
+            category_totals['LPACEMAKER'] += item.subtotal
+        elif item.ncap_drug:
+            category_totals['NCAP'] += item.subtotal
+        elif item.oncology_drug:
+            category_totals['ONCOLOGY'] += item.subtotal
 
     try:
         with transaction.atomic():
@@ -587,6 +586,7 @@ def receipt(request):
                 'form': form,
                 'cart_items': cart_items_for_context,
                 'total_price': total_price,
+                'category_totals': category_totals,
                 'user': request.user,
             }
 
@@ -781,11 +781,8 @@ def remove_from_cart(request, pk):
 
     try:
         with transaction.atomic():
-            # Return the quantity back to stock
+            # Stock update removed - no longer returning quantity to stock when removing from cart
             drug = cart_item.get_item
-            if drug:
-                drug.stock += cart_item.quantity
-                drug.save()
 
             # Delete the cart item
             cart_item.delete()
@@ -921,8 +918,15 @@ def view_form(request, form_id):
     # Prepare items for display
     items = []
 
+    # Initialize category totals
+    category_totals = {
+        'LPACEMAKER': Decimal('0.00'),
+        'NCAP': Decimal('0.00'),
+        'ONCOLOGY': Decimal('0.00')
+    }
+
     for form_item in form_items:
-        items.append({
+        item_data = {
             'name': form_item.drug_name,
             'brand': form_item.drug_brand,
             'unit': form_item.unit,
@@ -930,14 +934,20 @@ def view_form(request, form_id):
             'price': form_item.price,
             'subtotal': form_item.subtotal,
             'drug_type': form_item.drug_type
-        })
+        }
+        items.append(item_data)
 
-    # If no items were found, display a message
+        # Add to category total
+        if form_item.drug_type in category_totals:
+            category_totals[form_item.drug_type] += form_item.subtotal
+
+    # Calculate overall total
     total_amount = sum(item['subtotal'] for item in items) if items else form.total_amount
 
     context = {
         'form': form,
         'items': items,
+        'category_totals': category_totals,
         'total_amount': total_amount
     }
 
