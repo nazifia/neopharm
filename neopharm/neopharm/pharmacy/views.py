@@ -29,7 +29,7 @@ from django.db.models.functions import TruncDay
 from shortuuid.django_fields import ShortUUIDField
 from .forms import UserRegistrationForm
 from django.contrib.auth.forms import PasswordChangeForm
-from .forms import UserProfileForm, ProfileForm, CustomPasswordChangeForm
+from .forms import UserProfileForm, ProfileForm, CustomPasswordChangeForm, EditFormForm, FormItemForm
 
 # Create your views here.
 def is_admin(user):
@@ -964,3 +964,156 @@ def form_list(request):
     if request.headers.get('HX-Request'):
         return render(request, 'partials/form_list.html', context)
     return render(request, 'store/forms.html', context)
+
+
+@login_required
+def edit_form(request, form_id):
+    # Get the form with its related items
+    form = get_object_or_404(Form, form_id=form_id)
+
+    if request.method == 'POST':
+        form_form = EditFormForm(request.POST, instance=form)
+        if form_form.is_valid():
+            form_form.save()
+            messages.success(request, 'Form updated successfully.')
+            return redirect('store:view_form', form_id=form_id)
+    else:
+        form_form = EditFormForm(instance=form)
+
+    # Get form items
+    form_items = FormItem.objects.filter(form=form)
+
+    # Prepare items for display
+    items = []
+
+    # Initialize category totals
+    category_totals = {
+        'LPACEMAKER': Decimal('0.00'),
+        'NCAP': Decimal('0.00'),
+        'ONCOLOGY': Decimal('0.00')
+    }
+
+    for form_item in form_items:
+        item_data = {
+            'id': form_item.id,
+            'name': form_item.drug_name,
+            'brand': form_item.drug_brand,
+            'unit': form_item.unit,
+            'quantity': form_item.quantity,
+            'price': form_item.price,
+            'subtotal': form_item.subtotal,
+            'drug_type': form_item.drug_type
+        }
+        items.append(item_data)
+
+        # Add to category total
+        if form_item.drug_type in category_totals:
+            category_totals[form_item.drug_type] += form_item.subtotal
+
+    # Calculate overall total
+    total_amount = sum(item['subtotal'] for item in items) if items else form.total_amount
+
+    # Create a new form for adding items
+    new_item_form = FormItemForm()
+
+    context = {
+        'form': form,
+        'form_form': form_form,
+        'items': items,
+        'category_totals': category_totals,
+        'total_amount': total_amount,
+        'new_item_form': new_item_form,
+        'units': UNIT
+    }
+
+    return render(request, 'store/edit_form.html', context)
+
+
+@login_required
+def edit_form_item(request, form_id, item_id):
+    # Get the form and form item
+    form = get_object_or_404(Form, form_id=form_id)
+    form_item = get_object_or_404(FormItem, id=item_id, form=form)
+
+    if request.method == 'POST':
+        item_form = FormItemForm(request.POST, instance=form_item)
+        if item_form.is_valid():
+            # Save the form item but don't commit yet
+            form_item = item_form.save(commit=False)
+
+            # Calculate subtotal
+            form_item.subtotal = form_item.quantity * form_item.price
+            form_item.save()
+
+            # Update the form's total amount
+            update_form_total(form)
+
+            messages.success(request, 'Item updated successfully.')
+            return redirect('store:edit_form', form_id=form_id)
+        else:
+            messages.error(request, 'Error updating item. Please check the form.')
+    else:
+        item_form = FormItemForm(instance=form_item)
+
+    context = {
+        'form': form,
+        'form_item': form_item,
+        'item_form': item_form
+    }
+
+    return render(request, 'store/edit_form_item.html', context)
+
+
+@login_required
+def add_form_item(request, form_id):
+    # Get the form
+    form = get_object_or_404(Form, form_id=form_id)
+
+    if request.method == 'POST':
+        item_form = FormItemForm(request.POST)
+        if item_form.is_valid():
+            # Save the form item but don't commit yet
+            form_item = item_form.save(commit=False)
+            form_item.form = form
+
+            # Calculate subtotal
+            form_item.subtotal = form_item.quantity * form_item.price
+            form_item.save()
+
+            # Update the form's total amount
+            update_form_total(form)
+
+            messages.success(request, 'Item added successfully.')
+            return redirect('store:edit_form', form_id=form_id)
+        else:
+            messages.error(request, 'Error adding item. Please check the form.')
+            return redirect('store:edit_form', form_id=form_id)
+
+    # If not POST, redirect to edit form
+    return redirect('store:edit_form', form_id=form_id)
+
+
+@login_required
+def remove_form_item(request, form_id, item_id):
+    # Get the form and form item
+    form = get_object_or_404(Form, form_id=form_id)
+    form_item = get_object_or_404(FormItem, id=item_id, form=form)
+
+    # Delete the form item
+    form_item.delete()
+
+    # Update the form's total amount
+    update_form_total(form)
+
+    messages.success(request, 'Item removed successfully.')
+    return redirect('store:edit_form', form_id=form_id)
+
+
+def update_form_total(form):
+    # Calculate the new total amount for the form
+    form_items = FormItem.objects.filter(form=form)
+    total_amount = sum(item.subtotal for item in form_items)
+
+    # Update the form's total amount
+    form.total_amount = total_amount
+    form.save()

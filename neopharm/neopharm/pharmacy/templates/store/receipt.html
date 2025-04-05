@@ -47,16 +47,18 @@
                         {% for item in cart_items %}
                         <tr>
                             <td>
-                                <strong>{{ item.get_item.name }}</strong>
-                                <br>
-                                <small class="text-muted">{{ item.get_item.brand }}</small>
-                                <br>
-                                <small class="badge bg-info">
-                                    {% if item.lpacemaker_drug %}LPACEMAKER
-                                    {% elif item.ncap_drug %}NCAP
-                                    {% elif item.oncology_drug %}ONCOLOGY
+                                <div class="d-flex align-items-center gap-2">
+                                    <strong>{{ item.get_item.name }}</strong>
+                                    {% if item.get_item.brand %}
+                                    <small class="text-muted">({{ item.get_item.brand }})</small>
                                     {% endif %}
-                                </small>
+                                    <small class="badge bg-info">
+                                        {% if item.lpacemaker_drug %}LPACEMAKER
+                                        {% elif item.ncap_drug %}NCAP
+                                        {% elif item.oncology_drug %}ONCOLOGY
+                                        {% endif %}
+                                    </small>
+                                </div>
                             </td>
                             <td>{{ item.unit }}</td>
                             <td class="text-center">{{ item.quantity }}</td>
@@ -118,6 +120,18 @@
     .category-total-row.lpacemaker-row { background-color: rgba(227, 242, 253, 0.3); }
     .category-total-row.ncap-row { background-color: rgba(243, 229, 245, 0.3); }
     .category-total-row.oncology-row { background-color: rgba(232, 245, 233, 0.3); }
+
+    /* Responsive styles */
+    @media (max-width: 767.98px) {
+        .d-flex.align-items-center.gap-2 {
+            flex-wrap: wrap;
+        }
+
+        .d-flex.align-items-center.gap-2 strong {
+            width: 100%;
+            margin-bottom: 0.25rem;
+        }
+    }
 
     @media print {
         .btn, .navbar, footer {

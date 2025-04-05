@@ -21,14 +21,28 @@
     }
 
     .drug-type-badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
+        font-size: 0.7rem;
+        padding: 0.15rem 0.4rem;
         border-radius: 0.25rem;
+        display: inline-block;
+        white-space: nowrap;
     }
 
     .drug-type-LPACEMAKER { background-color: #e3f2fd; color: #0d47a1; }
     .drug-type-NCAP { background-color: #f3e5f5; color: #4a148c; }
     .drug-type-ONCOLOGY { background-color: #e8f5e9; color: #1b5e20; }
+
+    /* Responsive styles */
+    @media (max-width: 767.98px) {
+        .d-flex.align-items-center.gap-2 {
+            flex-wrap: wrap;
+        }
+
+        .d-flex.align-items-center.gap-2 strong {
+            width: 100%;
+            margin-bottom: 0.25rem;
+        }
+    }
 
     /* Category total rows styling */
     .category-total-row td { font-weight: 500; }
@@ -87,13 +101,15 @@
                         {% for item in items %}
                             <tr>
                                 <td>
-                                    <strong>{{ item.name }}</strong>
-                                    <br>
-                                    <small class="text-muted">{{ item.brand }}</small>
-                                    <br>
-                                    <span class="drug-type-badge drug-type-{{ item.drug_type }}">
-                                        {{ item.drug_type }}
-                                    </span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <strong>{{ item.name }}</strong>
+                                        {% if item.brand %}
+                                        <small class="text-muted">({{ item.brand }})</small>
+                                        {% endif %}
+                                        <span class="drug-type-badge drug-type-{{ item.drug_type }}">
+                                            {{ item.drug_type }}
+                                        </span>
+                                    </div>
                                 </td>
                                 <td>{{ item.unit }}</td>
                                 <td class="text-center">{{ item.quantity }}</td>
@@ -143,9 +159,14 @@
                     <p><strong>Generated_by:</strong> {{ form.dispensed_by.get_full_name|default:form.dispensed_by.username }}</p>
                 </div>
                 <div class="col-sm-6 text-end">
-                    <button onclick="window.print()" class="btn btn-primary no-print">
-                        <i class="fas fa-print"></i> Print Form
-                    </button>
+                    <div class="btn-group no-print">
+                        <a href="{% url 'store:edit_form' form.form_id %}" class="btn btn-secondary">
+                            <i class="fas fa-edit"></i> Edit Form
+                        </a>
+                        <button onclick="window.print()" class="btn btn-primary">
+                            <i class="fas fa-print"></i> Print Form
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

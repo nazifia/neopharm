@@ -115,7 +115,7 @@ class UserRegistrationForm(UserCreationForm):
     username = forms.CharField(max_length=200, required=True)
     mobile = forms.CharField(max_length=20, required=True)
     is_staff = forms.BooleanField(required=False, label='Staff Status')
-    
+
     class Meta:
         model = User
         fields = ('username', 'mobile', 'password1', 'password2', 'is_staff')
@@ -130,6 +130,46 @@ class UserProfileForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['username', 'mobile']
+
+
+class EditFormForm(forms.ModelForm):
+    class Meta:
+        model = Form
+        fields = ['buyer_name', 'hospital_no', 'ncap_no']
+        widgets = {
+            'buyer_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'hospital_no': forms.TextInput(attrs={'class': 'form-control'}),
+            'ncap_no': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class FormItemForm(forms.ModelForm):
+    class Meta:
+        model = FormItem
+        fields = ['drug_name', 'drug_brand', 'drug_type', 'unit', 'quantity', 'price']
+        widgets = {
+            'drug_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'drug_brand': forms.TextInput(attrs={'class': 'form-control'}),
+            'drug_type': forms.Select(attrs={'class': 'form-control'}, choices=[
+                ('LPACEMAKER', 'LPACEMAKER'),
+                ('NCAP', 'NCAP'),
+                ('ONCOLOGY', 'ONCOLOGY'),
+            ]),
+            'unit': forms.Select(attrs={'class': 'form-control'}, choices=UNIT),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
+            'price': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'step': '0.01'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        quantity = cleaned_data.get('quantity')
+        price = cleaned_data.get('price')
+
+        if quantity and price:
+            # Calculate subtotal
+            cleaned_data['subtotal'] = quantity * price
+
+        return cleaned_data
 
 class ProfileForm(forms.ModelForm):
     class Meta:

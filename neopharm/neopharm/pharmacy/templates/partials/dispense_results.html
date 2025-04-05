@@ -17,7 +17,10 @@
         <div class="col-md-4 mb-3">
             <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title">{{ drug.name }}</h5>
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ drug.name }}</h5>
+                        <span class="badge bg-primary">LPACEMAKER</span>
+                    </div>
                     <p class="card-text">
                         <strong>Brand:</strong> {{ drug.brand|default:"N/A" }}<br>
                         <strong>Unit:</strong> {{ drug.unit }}<br>
@@ -49,7 +52,10 @@
         <div class="col-md-4 mb-3">
             <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title">{{ drug.name }}</h5>
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ drug.name }}</h5>
+                        <span class="badge bg-info">NCAP</span>
+                    </div>
                     <p class="card-text">
                         <strong>Brand:</strong> {{ drug.brand|default:"N/A" }}<br>
                         <strong>Unit:</strong> {{ drug.unit }}<br>
@@ -81,11 +87,14 @@
         <div class="col-md-4 mb-3">
             <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title">{{ drug.name }}</h5>
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ drug.name }}</h5>
+                        <span class="badge bg-success">ONCOLOGY</span>
+                    </div>
                     <p class="card-text">
                         <strong>Brand:</strong> {{ drug.brand|default:"N/A" }}<br>
                         <strong>Unit:</strong> {{ drug.unit }}<br>
-                        <strong>Price:</strong> ₦{{ drug.price }}<br>
+                        <strong>Price:</strong> ₦{{ drug.price|floatformat:2|intcomma }}<br>
                         <strong>Stock:</strong> {{ drug.stock }}
                     </p>
                     <form method="POST" action="{% url 'store:add_to_cart' drug_type='oncology' pk=drug.id %}">
